@@ -129,17 +129,24 @@ def compute_capacity_schedule():
                 install_months = inv["install_months"]
                 full_cap = inv["full_capacity"]
 
-                if install_months >= 12:
-                    # No benefit in Year 1; full benefit from Year 2 onward
-                    if year >= 2:
-                        cap += full_cap
+                # Which year does the investment finish in, and how
+                # many months of that year is it actually active?
+                # e.g. 14 months -> finishes in Year 2, active for 10 months
+                finish_year        = (install_months // 12) + 1
+                months_active      = 12 - (install_months % 12)
+                # If install_months is an exact multiple of 12 (e.g. 12, 24),
+                # the investment finishes at the very start of the next year,
+                # so it contributes a full year there, not a partial one.
+                if install_months % 12 == 0:
+                    finish_year   = install_months // 12 + 1
+                    months_active = 12
+
+                if year < finish_year:
+                    pass                                        # Still being installed
+                elif year == finish_year:
+                    cap += full_cap * (months_active / 12)      # Partial year
                 else:
-                    # Partial benefit in Year 1, full benefit from Year 2 onward
-                    partial_cap = full_cap * (12 - install_months) / 12
-                    if year == 1:
-                        cap += partial_cap
-                    else:
-                        cap += full_cap
+                    cap += full_cap                             # Fully operational
 
             schedule[year][constraint] = cap
 
