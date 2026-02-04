@@ -21,67 +21,71 @@ from pulp import *
 YEARS = 5  # Number of years to model
 
 # --- Products ---
-# Names, and profit per unit for each product.
-PRODUCTS = ["Product_A", "Product_B", "Product_C"]
-PROFIT_PER_UNIT = {"Product_A": 50, "Product_B": 60, "Product_C": 45}
+PRODUCTS = ["Legacy", "MRI", "AI"]
+PROFIT_PER_UNIT = {"Legacy": 19, "MRI": 37.6, "AI": 93.96}
+
+LEGACY_PER_YEAR = [1950000, 1950000, 1950000, 1950000, 1950000]
+MRI_PER_YEAR = [1537500, 1537500, 1537500, 1537500, 1537500]
 
 # --- Constraints ---
 # Names and base (Year 0) capacities for each constraint.
-CONSTRAINTS = ["Labour", "Wafer_Cutting", "Assembly", "Packaging"]
+CONSTRAINTS = ["Labour", "Wafer_Cutting", "Line_1", "Line_2", "Energy", "Station_B"]
 BASE_CAPACITY = {
-    "Labour":        1000,
-    "Wafer_Cutting": 800,
-    "Assembly":      600,
-    "Packaging":     500,
+    "Labour":        2560000,
+    "Wafer_Cutting": 800000,
+    "Line_1":        640000,
+    "Line_2":        1248000,
+    "Energy":        64000000,
+    "Station_B":     5280000
 }
 
-# How much of each constraint one unit of each product uses.
-# Format: USAGE[constraint][product] = amount
 USAGE = {
-    "Labour":        {"Product_A": 2,   "Product_B": 3,   "Product_C": 1.5},
-    "Wafer_Cutting": {"Product_A": 4,   "Product_B": 0,   "Product_C": 2  },
-    "Assembly":      {"Product_A": 0,   "Product_B": 5,   "Product_C": 3  },
-    "Packaging":     {"Product_A": 1,   "Product_B": 2,   "Product_C": 1  },
+    "Labour":        {"Legacy": 0.5,   "MRI": 0.8,   "AI": 1.2},
+    "Wafer_Cutting": {"Legacy": 0.2,   "MRI": 0.2,   "AI": 0.2},
+    "Line_1":        {"Legacy": 0.2,   "MRI": 0.0,   "AI": 0.0},
+    "Line_2":        {"Legacy": 0.0,   "MRI": 0.4,   "AI": 0.8},
+    "Energy":        {"Legacy": 4.0,   "MRI": 7.0,   "AI": 10.0},
+    "Station_B":     {"Legacy": 1.0,   "MRI": 1.0,   "AI": 1.0}
 }
 
-# --- Labour Growth ---
-# Yearly percentage increase in labour capacity (applied every year).
-LABOUR_GROWTH_RATE = 0.05  # 5% per year
+# --- Labour Growth per year. PENDING FIGURES FROM MK!!! ---
+LABOUR_GROWTH_RATE = 512000 # This is a placeholder value. Under this assumption, the workforce will double in 5 years
 
 # =============================================================================
 # INVESTMENTS - Define available investments here
 # =============================================================================
-# Each investment is a dictionary:
-#   "name":             Label for reporting
-#   "constraint":       Which constraint it affects
-#   "install_months":   How many months installation takes
-#   "full_capacity":    The full yearly capacity increase once installed
-#
-# The script automatically calculates the partial-year increase:
-#   partial_year_capacity = full_capacity * (12 - install_months) / 12
-#
-# In the installation year you get partial_year_capacity.
-# In every subsequent year you get full_capacity.
-# If install_months >= 12, there is no capacity increase in Year 1.
 
 INVESTMENTS = [
     {
-        "name":            "Wafer Cutting Module",
+        "name":            "Wafer Cutting Module 1",
         "constraint":      "Wafer_Cutting",
         "install_months":  3,        # 3 months to install
         "full_capacity":   200000,   # +200,000 machine hours/year once installed
     },
     {
-        "name":            "New Production Line",
-        "constraint":      "Assembly",
-        "install_months":  12,       # Takes the full first year — no benefit until Year 2
-        "full_capacity":   150000,
+        "name":            "Wafer Cutting Module 2",
+        "constraint":      "Wafer_Cutting",
+        "install_months":  3,
+        "full_capacity":   200000,
     },
     {
-        "name":            "Packaging Upgrade",
-        "constraint":      "Packaging",
+        "name":            "Wafer Cutting Module 3",
+        "constraint":      "Wafer_Cutting",
+        "install_months":  3,        # 3 months to install
+        "full_capacity":   200000,   # +200,000 machine hours/year once installed
+    },
+    {
+        "name":            "Line 3",
+        "constraint":      "Line_2",
+        "install_months":  12,       # min 12, max 14
+        "full_capacity":   1248000,
+    },
+    {
+        "name":            "Station B Upgrade",
+        "constraint":      "Station_B",
         "install_months":  6,        # 6 months to install
-        "full_capacity":   100000,
+        "full_capacity":   2376000,  # min 2376000, max 2904000
+        "downtime_months": 1
     },
 ]
 
@@ -92,13 +96,15 @@ INVESTMENTS = [
 # This lets you quickly compare different investment combinations.
 
 ACTIVE_INVESTMENTS = {
-    "Wafer Cutting Module":  True,
-    "New Production Line":   True,
-    "Packaging Upgrade":     False,
+    "Wafer Cutting Module 1":  True,
+    "Wafer Cutting Module 2":  True,
+    "Wafer Cutting Module 3":  False,
+    "Line 3":                  True,
+    "Station B Upgrade":       True,
 }
 
 # =============================================================================
-# CAPACITY CALCULATION - No need to edit below this line
+# CAPACITY CALCULATION
 # =============================================================================
 
 def compute_capacity_schedule():
@@ -117,7 +123,7 @@ def compute_capacity_schedule():
 
             # Apply labour growth if this is the labour constraint
             if constraint == "Labour":
-                cap *= (1 + LABOUR_GROWTH_RATE) ** (year - 1)
+                cap += LABOUR_GROWTH_RATE * year
 
             # Apply each active investment that affects this constraint
             for inv in INVESTMENTS:
@@ -150,6 +156,23 @@ def compute_capacity_schedule():
 
             schedule[year][constraint] = cap
 
+        for inv in INVESTMENTS:
+            if not ACTIVE_INVESTMENTS.get(inv["name"], False):
+                continue
+            if inv.get("downtime_months", 0) == 0:
+                continue
+
+            finish_year = (inv["install_months"] // 12) + 1
+            if inv["install_months"] % 12 == 0:
+                finish_year = inv["install_months"] // 12 + 1
+
+            if year == finish_year:
+                downtime_factor = (12 - inv["downtime_months"]) / 12
+                for constraint in CONSTRAINTS:
+                    schedule[year][constraint] *= downtime_factor
+    
+
+
     return schedule
 
 
@@ -178,6 +201,14 @@ def solve_year(year, capacities):
             constraint
         )
 
+    # Add minimum quantities of legacy and MRI chips, otherwise AI takes over
+    prob += (
+        x["Legacy"] == LEGACY_PER_YEAR[year-1]
+    )
+    prob += (
+        x["MRI"] >= MRI_PER_YEAR[year-1]
+    )
+
     # Solve (using the default CBC solver; suppress output)
     prob.solve(PULP_CBC_CMD(msg=0))
 
@@ -194,7 +225,7 @@ def solve_year(year, capacities):
     # Constraint utilisation and binding status
     results["constraints"] = {}
     for constraint in CONSTRAINTS:
-        used = value(prob.constraints[constraint].expr) + capacities[constraint]
+        used = value(prob.constraints[constraint].expr)
         # PuLP stores constraints as (LHS - RHS <= 0), so slack is -constraint.slack
         slack = -prob.constraints[constraint].slack
         utilisation = (used / capacities[constraint]) * 100 if capacities[constraint] > 0 else 0
