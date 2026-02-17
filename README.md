@@ -19,16 +19,16 @@ Declares the product names and profit per unit. The only change you might be mak
 | Royalty                                                  | Profit/unit |
 | -------------------------------------------------------- | ----------- |
 | 35% (current)                                            | 64.4        |
-| 15%                                                      | 90.67       |
-| 10%                                                      | 97.24       |
-| 12.5% (average)                                          | 93.96       |
+| 15%                                                      | 104.88      |
+| 10%                                                      | 115         |
+| 12.5% (average)                                          | 109.94      |
 | No AI production (i.e. <br>BTL loses access to AI chips) | 0           |
 
 
 `LEGACY_PER_YEAR = [1950000, 1950000, 1950000, 1950000, 1950000]`
 `MRI_PER_YEAR = [1537500, 1537500, 1537500, 1537500, 1537500]`
 Minimum amount of legacy and MRI chips to produce in each year. If you change `YEARS`, make sure you change this array so it has the same number of entries. 
-No need to change this yet; I'll fill it out when JB gets back to us
+NOTE: JB has given us figures for this, so no need to change this either.
 
 `CONSTRAINTS`, `BASE CAPACITY` and `USAGE`
 No need to change these either; they stay the same under all scenarios.
