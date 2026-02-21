@@ -28,11 +28,10 @@ REV_PER_UNIT_LWR = {"Legacy": 42.75, "MRI": 75.2, "AI": 172.04, "MRI2": 75.2, "A
 REV_PER_UNIT_HIR = {"Legacy": 42.75, "MRI": 75.2, "AI": 182.16, "MRI2": 75.2, "AI2": 182.16}
 
 
-# LEGACY_PER_YEAR = [2100755, 1979288, 1857822, 1736355, 1614889] # 121466 (5.5%) reduction per year; slightly faster than market decline. Use when keeping AI chips around
-LEGACY_PER_YEAR = [2111111, 2000000, 1888889, 1777778, 1666667] # 111111 (5%) reduction per year; exactly in line with market decline. Use when AI chips no longer an option.
+LEGACY_PER_YEAR = [2088889, 1955556, 1822223, 1688890, 1555557] # 133333 (6%) reduction per year; slightly faster than market decline. Use when keeping AI chips around
+# LEGACY_PER_YEAR = [2111111, 2000000, 1888889, 1777778, 1666667] # 111111 (5%) reduction per year; exactly in line with market decline. Use when AI chips no longer an option.
 MRI_PER_YEAR    = [1962765, 2289892, 2617019, 2826380, 3035741] # Above mkt growth
 # MRI_PER_YEAR    = [1908244, 2180850, 2453456, 2726062, 2998668] # Market growth
-# MAX_AI          = [209790, 314685, 419580, 524475, 629370] # ensures 250% growth at most. Or rather, slightly less, since I forgot to account for WASTE AGAIN
 MAX_AI          = [228032, 342048, 456064, 570080, 684096] # Accounting for waste
 # MAX_AI          = [0, 0, 0, 0, 0] # no AI chips
 
@@ -117,9 +116,9 @@ ACTIVE_INVESTMENTS = {
     "Wafer Cutting Module 1":  True,
     "Wafer Cutting Module 2":  True,
     "Wafer Cutting Module 3":  False,
-    "Line 3":                  False,
+    "Line 3":                  True,
     "Station B Upgrade":       False,
-    "Line_1_Upgrade":          True
+    "Line_1_Upgrade":          False
 }
 
 # =============================================================================
