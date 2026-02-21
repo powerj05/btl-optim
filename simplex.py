@@ -22,16 +22,23 @@ YEARS = 5  # Number of years to model
 
 # --- Products ---
 PRODUCTS = ["Legacy", "MRI", "AI", "MRI2", "AI2"]
-PROFIT_PER_UNIT = {"Legacy": 19, "MRI": 37.6, "AI": 104.88, "MRI2": 37.6, "AI2": 104.88}
-REVENUE_PER_UNIT = {"Legacy": 42.75, "MRI": 75.2, "AI": 177.1, "MRI2": 75.2, "AI2": 177.1}
+PROFIT_PER_UNIT_LWR = {"Legacy": 19, "MRI": 37.6, "AI": 104.88, "MRI2": 37.6, "AI2": 104.88}
+PROFIT_PER_UNIT_HIR = {"Legacy": 19, "MRI": 37.6, "AI": 115, "MRI2": 37.6, "AI2": 115}
+REV_PER_UNIT_LWR = {"Legacy": 42.75, "MRI": 75.2, "AI": 172.04, "MRI2": 75.2, "AI2": 172.04}
+REV_PER_UNIT_HIR = {"Legacy": 42.75, "MRI": 75.2, "AI": 182.16, "MRI2": 75.2, "AI2": 182.16}
 
-LEGACY_PER_YEAR = [1055556, 358889, 0, 0, 0]
-MRI_PER_YEAR    = [1896250, 2255000, 2613750, 2998125, 3382500]
-MAX_AI          = 1035415 # ensures 250% growth at most
+
+# LEGACY_PER_YEAR = [2100755, 1979288, 1857822, 1736355, 1614889] # 121466 (5.5%) reduction per year; slightly faster than market decline. Use when keeping AI chips around
+LEGACY_PER_YEAR = [2111111, 2000000, 1888889, 1777778, 1666667] # 111111 (5%) reduction per year; exactly in line with market decline. Use when AI chips no longer an option.
+MRI_PER_YEAR    = [1962765, 2289892, 2617019, 2826380, 3035741] # Above mkt growth
+# MRI_PER_YEAR    = [1908244, 2180850, 2453456, 2726062, 2998668] # Market growth
+# MAX_AI          = [209790, 314685, 419580, 524475, 629370] # ensures 250% growth at most. Or rather, slightly less, since I forgot to account for WASTE AGAIN
+MAX_AI          = [228032, 342048, 456064, 570080, 684096] # Accounting for waste
+# MAX_AI          = [0, 0, 0, 0, 0] # no AI chips
 
 # --- Constraints ---
 # Names and base (Year 0) capacities for each constraint.
-CONSTRAINTS = ["Labour", "Wafer_Cutting", "Line_1", "Line_2", "Energy", "Station_B", "x45max"]
+CONSTRAINTS = ["Labour", "Wafer_Cutting", "Line_1", "Line_2", "Energy", "Station_B", "x45max", ]
 BASE_CAPACITY = {
     "Labour":        2560000,
     "Wafer_Cutting": 800000,
@@ -49,10 +56,10 @@ USAGE = {
     "Line_2":        {"Legacy": 0.0,   "MRI": 0.4,   "AI": 0.8,   "MRI2": 0.0,   "AI2": 0.0},
     "Energy":        {"Legacy": 4.0,   "MRI": 7.0,   "AI": 10.0,  "MRI2": 7.0,   "AI2": 10.0},
     "Station_B":     {"Legacy": 1.0,   "MRI": 1.0,   "AI": 1.0,   "MRI2": 1.0,   "AI2": 1.0},
-    "x45max":        {"Legacy": 0.0,   "MRI": 0.0,   "AI": 0.0,   "MRI2": 1.0,   "AI2": 1.0}
+    "x45max":        {"Legacy": 0.0,   "MRI": 0.0,   "AI": 0.0,   "MRI2": 1.0,   "AI2": 1.0},
 }
 
-# --- Labour Growth per year. PENDING FIGURES FROM MK!!! ---
+# --- Labour Growth per year.
 LABOUR_GROWTH_RATE = 522000 # Gives just enough to reach tgt by end of 5 years
 
 # =============================================================================
@@ -63,25 +70,25 @@ INVESTMENTS = [
     {
         "name":            "Wafer Cutting Module 1",
         "constraint":      "Wafer_Cutting",
-        "install_months":  4,        # 3-4 months to install
+        "install_months":  3.5,        # 3-4 months to install
         "full_capacity":   200000,   # +200,000 machine hours/year once installed
     },
     {
         "name":            "Wafer Cutting Module 2",
         "constraint":      "Wafer_Cutting",
-        "install_months":  4,
+        "install_months":  3.5,
         "full_capacity":   200000,
     },
     {
         "name":            "Wafer Cutting Module 3",
         "constraint":      "Wafer_Cutting",
-        "install_months":  3,        # 3 months to install
+        "install_months":  3.5,        # 3 months to install
         "full_capacity":   200000,   # +200,000 machine hours/year once installed
     },
     {
         "name":            "Line 3",
         "constraint":      "Line_2",
-        "install_months":  14,       # min 12, max 14
+        "install_months":  13,       # min 12, max 14
         "full_capacity":   1248000,
     },
     {
@@ -110,9 +117,9 @@ ACTIVE_INVESTMENTS = {
     "Wafer Cutting Module 1":  True,
     "Wafer Cutting Module 2":  True,
     "Wafer Cutting Module 3":  False,
-    "Line 3":                  True,
+    "Line 3":                  False,
     "Station B Upgrade":       False,
-    "Line_1_Upgrade":          False
+    "Line_1_Upgrade":          True
 }
 
 # =============================================================================
@@ -203,7 +210,7 @@ def solve_year(year, capacities):
     x = {p: LpVariable(p, lowBound=0) for p in PRODUCTS}
 
     # Objective: maximise total profit
-    prob += lpSum(PROFIT_PER_UNIT[p] * x[p] for p in PRODUCTS), "Total_Profit"
+    prob += lpSum(PROFIT_PER_UNIT_LWR[p] * x[p] for p in PRODUCTS), "Total_Profit"
 
     # Constraints
     for constraint in CONSTRAINTS:
@@ -215,13 +222,13 @@ def solve_year(year, capacities):
 
     # Add minimum quantities of legacy and MRI chips, otherwise AI takes over
     prob += (
-        x["Legacy"] == LEGACY_PER_YEAR[year-1]
+        x["Legacy"] <= LEGACY_PER_YEAR[year-1]
     )
     prob += (
-        x["MRI"] == MRI_PER_YEAR[year-1]
+        x["MRI"] + x["MRI2"] == MRI_PER_YEAR[year-1]
     )
     prob += (
-        x["AI"] <= MAX_AI
+        x["AI"] + x["AI2"] == MAX_AI[year-1]
     )
     # Solve (using the default CBC solver; suppress output)
     prob.solve(PULP_CBC_CMD(msg=0))
@@ -234,7 +241,11 @@ def solve_year(year, capacities):
         results[p] = x[p].varValue
 
     # Optimal profit
-    results["profit"] = value(prob.objective)
+    results["profit_lwr"] = value(prob.objective)
+    results["profit_hir"] = sum(PROFIT_PER_UNIT_HIR[p]*x[p].varValue for p in PRODUCTS)
+    results["revenue_lwr"] = sum(REV_PER_UNIT_LWR[p]*x[p].varValue for p in PRODUCTS)
+    results["revenue_hir"] = sum(REV_PER_UNIT_HIR[p]*x[p].varValue for p in PRODUCTS)
+
 
     # Constraint utilisation and binding status
     results["constraints"] = {}
@@ -272,7 +283,7 @@ def print_results(all_results):
 
     for res in all_results:
         print("-" * 70)
-        print(f"  YEAR {res['year']}  |  Status: {res['status']}  |  Optimal Profit: {res['profit']:.2f}")
+        print(f"  YEAR {res['year']}  |  Status: {res['status']}  |  Optimal Profit: {res['profit_lwr']:.2f}")
         print("-" * 70)
 
         # Production mix
@@ -306,14 +317,14 @@ def export_csv(all_results, filename="results.csv"):
         writer = csv.writer(f)
 
         # Header
-        header = ["Year", "Status", "Profit"] + PRODUCTS
+        header = ["Year", "Status", "Profit (lower)", "Profit (upper)", "Revenue (lower)", "Revenue (upper)"] + PRODUCTS
         for c in CONSTRAINTS:
             header += [f"{c}_Capacity", f"{c}_Used", f"{c}_Utilisation_%", f"{c}_Binding"]
         writer.writerow(header)
 
         # Rows
         for res in all_results:
-            row = [res["year"], res["status"], f"{res['profit']:.2f}"]
+            row = [res["year"], res["status"], f"{res['profit_lwr']:.2f}", f"{res['profit_hir']:.2f}", f"{res['revenue_lwr']:.2f}", f"{res['revenue_hir']:.2f}"]
             row += [f"{res[p]:.2f}" for p in PRODUCTS]
             for c in CONSTRAINTS:
                 info = res["constraints"][c]
