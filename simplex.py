@@ -30,9 +30,13 @@ REV_PER_UNIT_HIR = {"Legacy": 42.75, "MRI": 75.2, "AI": 182.16, "MRI2": 75.2, "A
 
 LEGACY_PER_YEAR = [2088889, 1955556, 1822223, 1688890, 1555557] # 133333 (6%) reduction per year; slightly faster than market decline. Use when keeping AI chips around
 # LEGACY_PER_YEAR = [2111111, 2000000, 1888889, 1777778, 1666667] # 111111 (5%) reduction per year; exactly in line with market decline. Use when AI chips no longer an option.
+# LEGACY_PER_YEAR = [1111111, 377777, 0, 0, 0] # Fastest possible exit from legacy mkt
+
 MRI_PER_YEAR    = [1962765, 2289892, 2617019, 2826380, 3035741] # Above mkt growth
 # MRI_PER_YEAR    = [1908244, 2180850, 2453456, 2726062, 2998668] # Market growth
+
 MAX_AI          = [228032, 342048, 456064, 570080, 684096] # Accounting for waste
+# MAX_AI = [193651, 290341, 387122, 483902, 580683] # Bringing in ExSil growth and maintaining mkt share
 # MAX_AI          = [0, 0, 0, 0, 0] # no AI chips
 
 # --- Constraints ---
@@ -116,9 +120,9 @@ ACTIVE_INVESTMENTS = {
     "Wafer Cutting Module 1":  True,
     "Wafer Cutting Module 2":  True,
     "Wafer Cutting Module 3":  False,
-    "Line 3":                  True,
+    "Line 3":                  False,
     "Station B Upgrade":       False,
-    "Line_1_Upgrade":          False
+    "Line_1_Upgrade":          True
 }
 
 # =============================================================================
@@ -221,7 +225,7 @@ def solve_year(year, capacities):
 
     # Add minimum quantities of legacy and MRI chips, otherwise AI takes over
     prob += (
-        x["Legacy"] <= LEGACY_PER_YEAR[year-1]
+        x["Legacy"] == LEGACY_PER_YEAR[year-1]
     )
     prob += (
         x["MRI"] + x["MRI2"] == MRI_PER_YEAR[year-1]

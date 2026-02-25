@@ -2,55 +2,32 @@
 This script simulates production over a number of years, and can be configured to explore different investment scenarios.
 
 ## Config
-You won't need to touch any of the methods below `compute_capacity_schedule()` - all of the config happens above that, and only the following variables will need to be changed:
-- `YEARS` (maybe)
-- `PROFIT_PER_UNIT`
-- `ÀCTIVE_INVESTMENTS`
+The code can be configured to explore various scenarios by changing the following variables:
+* `LEGACY_PER_YEAR`, `MRI_PER_YEAR` and `MAX_AI` - yearly production targets for each product. Some preset values that were used in the analysis are present here, and can be commented in and out as needed.
+* `ACTIVE_INVESTMENTS` - selects what investments to use for the scenario
+* The following blocks in `solve_year()`:
+    `prob += (`
+    `   x["Legacy"] == LEGACY_PER_YEAR[year-1]`
+    `)`
+    `prob += (`
+    `    x["MRI"] + x["MRI2"] == MRI_PER_YEAR[year-1]`
+    `)`
+    `prob += (`
+    `    x["AI"] + x["AI2"] == MAX_AI[year-1]`
+    `)`
 
-**N.B. If using GitHub, DO NOT upload/push any of your changes. I'll be working on some updates over the next few days, and don't want to deal with merging.**
+    These can be tweaked to determine whether a production target is a maximum ( `<=`), minimum (`>=`), or exact target (`==`)
 
-`YEARS = 5`
-The number of years to simulate. Unless labour is still a binding constraint in year 5, there's no need to change this.
-
-`PRODUCTS = ["Legacy", "MRI", "AI"]`
-`PROFIT_PER_UNIT = {"Legacy": 19, "MRI": 37.6, "AI": 93.96}`
-
-Declares the product names and profit per unit. The only change you might be making here is to the `AI` entry in `PROFIT_PER_UNIT` - depending on the royalty, this can take any of the following values:
-| Royalty                                                  | Profit/unit |
-| -------------------------------------------------------- | ----------- |
-| 35% (current)                                            | 64.4        |
-| 15%                                                      | 104.88      |
-| 10%                                                      | 115         |
-| 12.5% (average)                                          | 109.94      |
-| No AI production (i.e. <br>BTL loses access to AI chips) | 0           |
-
-
-`LEGACY_PER_YEAR = [1950000, 1950000, 1950000, 1950000, 1950000]`
-`MRI_PER_YEAR = [1537500, 1537500, 1537500, 1537500, 1537500]`
-Minimum amount of legacy and MRI chips to produce in each year. If you change `YEARS`, make sure you change this array so it has the same number of entries. 
-NOTE: JB has given us figures for this, so no need to change this either.
-
-`CONSTRAINTS`, `BASE CAPACITY` and `USAGE`
-No need to change these either; they stay the same under all scenarios.
-
-`LABOUR_GROWTH_RATE` = 512000
-How much the workforce can grow each year. This figure is just a placeholder until MK gets back to me.
-
-`INVESTMENTS`
-Details the investments available to BTL. No need to change this.
-
-`ACTIVE_INVESTMENTS`
-Change for each scenario by setting investments to `True` or `False`.
+* `LABOUR_GROWTH_RATE` = 512000
+    How much the workforce can grow each year (in labour-hours). This model assumes that the workforce can double in 5 years' time.
 
 ## How to use this tool
 
-Once you've set up the scenario - e.g. by setting `PROFIT_PER_UNIT["AI"]` to 0, to simulate BTL losing access to AI production, just run the script with all `ACTIVE_INVESTMENTS` set to `FALSE` to see what happens. The output will show you:
-- What the value of each constraint is in each year
-- A breakdown of the solution for each year
-- A summary of what constraints were holding back production in each year
+Once a scenario is configured by altering the variables above, running the script gives a 5-year breakdown of the following figures for each year:
+- The value of each constraint
+- The production mix (i.e. how much of each product to aim to produce)
+- A summary of what constraints were holding back production
+- The optimal profit for the year - this is the lower bound of contributions, assuming a 15% royalty on AI chips
 
-Once you're run it once, activate one investment that addresses the binding constraint, then check the output to see what's holding it back. Keep going until you can't.
+It also exports the results to a `results.csv` file, which also contains the lower and upper bounds on contributions and the lower and upper bounds on revenue.
 
-Text me if you have any trouble!
-
-- John
